@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #define LOG(x) std::cout << "logging: " << x << std::endl;
 
@@ -102,6 +103,119 @@ public:
   }
 };
 
+class Playfair : public Cipher<std::string> {
+  char keySquare[5][5];
+  std::string diagraphized_input;
+  struct xy {
+    int x;
+    int y;
+  };
+  std::unordered_map<char, xy> char_coordinates;
+
+  std::string diagraphize(std::string input, char bogus) {
+    for (int i = 0; i < input.size(); i = i + 2) {
+      if (input[i] == 'j') {
+        input[i] = 'i';
+      }
+      if (i - 1 >= 0 && input[i - 1] == input[i]) {
+        input.insert(i, 1, bogus);
+        i++;
+      }
+      if (i + 1 >= input.size()) {
+        input.append(1, bogus);
+        break;
+      }
+      if (input[i + 1] == 'j') {
+        input[i] = 'i';
+      }
+      if (input[i + 1] == input[i]) {
+        input.insert(i + 1, 1, bogus);
+        i = i + 2;
+      }
+    }
+    return input;
+  }
+
+public:
+  Playfair(std::string key, std::string input, char bogus) {
+    // generate key square
+    char a = 'a';
+    int counter = 0;
+    int i = 0, j = 0;
+    this->char_coordinates['j'] = {j, i};
+
+    for (i = 0; i < 5 && counter < key.size(); i++) {
+      for (j = 0; j < 5 && counter < key.size(); j++, counter++) {
+        if (this->char_coordinates.count(key[counter]) > 0)
+          counter++;
+        if (counter >= key.size())
+          break;
+        this->char_coordinates[key[counter]] = {j, i};
+        this->keySquare[i][j] = key[counter];
+      }
+      if (counter >= key.size())
+        break;
+    }
+    counter = 0;
+    for (; i < 5; i++) {
+      for (; j < 5; j++, counter++) {
+        if (this->char_coordinates.count(a + counter) > 0) {
+          counter++;
+        }
+        this->keySquare[i][j] = a + counter;
+      }
+      j = 0;
+    }
+    this->diagraphized_input = diagraphize(input, bogus);
+    LOG(diagraphized_input)
+  }
+
+  std::string encrypt(std::string input, std::string key) {
+    std::string output = this->diagraphized_input;
+    for (int i = 0; i < this->diagraphized_input.size(); i = i + 2) {
+      char c1 = output[i];
+      char c2 = output[i + 1];
+      // if on same column
+      if (this->char_coordinates[c1].x == this->char_coordinates[c2].x) {
+        output[i] =
+            (this->char_coordinates[c1].y + 1 > sizeof(this->keySquare) - 1)
+                ? this->keySquare[0][this->char_coordinates[c1].x]
+                : this->keySquare[this->char_coordinates[c1].y + 1]
+                                 [this->char_coordinates[c1].x];
+        output[i + 1] =
+            (this->char_coordinates[c2].y + 1 > sizeof(this->keySquare) - 1)
+                ? this->keySquare[0][this->char_coordinates[c2].x]
+                : this->keySquare[this->char_coordinates[c2].y + 1]
+                                 [this->char_coordinates[c2].x];
+      }
+      // if on same row
+      else if (this->char_coordinates[c1].y == this->char_coordinates[c2].y) {
+        output[i] =
+            (this->char_coordinates[c1].x + 1 > sizeof(this->keySquare) - 1)
+                ? this->keySquare[this->char_coordinates[c1].y][0]
+                : this->keySquare[this->char_coordinates[c1].y]
+                                 [this->char_coordinates[c1].x + 1];
+        output[i + 1] =
+            (this->char_coordinates[c2].y + 1 > sizeof(this->keySquare) - 1)
+                ? this->keySquare[0][this->char_coordinates[c2].x]
+                : this->keySquare[this->char_coordinates[c2].y + 1]
+                                 [this->char_coordinates[c2].x];
+      }
+      // else if neither on same row or column
+      else {
+        output[i] = this->keySquare[this->char_coordinates[c1].y]
+                                   [this->char_coordinates[c2].x];
+        output[i + 1] = this->keySquare[this->char_coordinates[c2].y]
+                                       [this->char_coordinates[c1].x];
+      }
+    }
+
+    return output;
+  }
+
+  std::string decrypt(std::string input, std::string key) { return input; }
+};
+
 int getCipher() {
   int cipher;
   std::cout << "Enter the cipher of your choice: " << std::endl;
@@ -124,6 +238,11 @@ std::string getKey(int cipher, std::string input) {
     std::cout << "Enter Vigenere cipher key(string)" << std::endl;
     std::cin >> keyStr;
     return encrypt_decrypt(input, keyStr, new Vigenere());
+    break;
+  case 3:
+    std::cout << "Enter Playfair cipher key(string)" << std::endl;
+    std::cin >> keyStr;
+    return encrypt_decrypt(input, keyStr, new Playfair(keyStr, input, 'x'));
     break;
   default:
     std::cout << "Invalid input" << std::endl;
