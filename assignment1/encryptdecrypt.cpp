@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <fstream>
@@ -24,8 +25,7 @@ std::string encrypt_decrypt(std::string input, T key, O obj) {
   case 'd':
     return obj->decrypt(input, key);
   default:
-    std::cout << "Invalid input" << std::endl;
-    return "ERROR";
+    throw "Invalid input";
     break;
   }
 }
@@ -142,12 +142,14 @@ public:
     char a = 'a';
     int counter = 0;
     int i = 0, j = 0;
-    this->char_coordinates['j'] = {j, i};
+    this->char_coordinates['j'] = {5, 5}; // invalid coordinates
 
     for (i = 0; i < 5 && counter < key.size(); i++) {
       for (j = 0; j < 5 && counter < key.size(); j++, counter++) {
-        if (this->char_coordinates.count(key[counter]) > 0)
-          counter++;
+        if (this->char_coordinates.count(key[counter]) > 0) {
+          j--;
+          continue;
+        }
         if (counter >= key.size())
           break;
         this->char_coordinates[key[counter]] = {j, i};
@@ -160,14 +162,23 @@ public:
     for (; i < 5; i++) {
       for (; j < 5; j++, counter++) {
         if (this->char_coordinates.count(a + counter) > 0) {
-          counter++;
+          j--;
+          continue;
         }
         this->keySquare[i][j] = a + counter;
+        this->char_coordinates[a + counter] = {j, i};
       }
       j = 0;
     }
     this->diagraphized_input = diagraphize(input, bogus);
-    LOG(diagraphized_input)
+    LOG(this->diagraphized_input)
+    // for (int i = 0; i < 5; i++) {
+    //   for (int j = 0; j < 5; j++) {
+    //     LOG(this->keySquare[i][j])
+    //     LOG(this->char_coordinates[keySquare[i][j]].y)
+    //     LOG(this->char_coordinates[keySquare[i][j]].x)
+    //   }
+    // }
   }
 
   std::string encrypt(std::string input, std::string key) {
@@ -178,12 +189,12 @@ public:
       // if on same column
       if (this->char_coordinates[c1].x == this->char_coordinates[c2].x) {
         output[i] =
-            (this->char_coordinates[c1].y + 1 > sizeof(this->keySquare) - 1)
+            (this->char_coordinates[c1].y + 1 > sizeof(this->keySquare[0]) - 1)
                 ? this->keySquare[0][this->char_coordinates[c1].x]
                 : this->keySquare[this->char_coordinates[c1].y + 1]
                                  [this->char_coordinates[c1].x];
         output[i + 1] =
-            (this->char_coordinates[c2].y + 1 > sizeof(this->keySquare) - 1)
+            (this->char_coordinates[c2].y + 1 > sizeof(this->keySquare[0]) - 1)
                 ? this->keySquare[0][this->char_coordinates[c2].x]
                 : this->keySquare[this->char_coordinates[c2].y + 1]
                                  [this->char_coordinates[c2].x];
@@ -191,15 +202,15 @@ public:
       // if on same row
       else if (this->char_coordinates[c1].y == this->char_coordinates[c2].y) {
         output[i] =
-            (this->char_coordinates[c1].x + 1 > sizeof(this->keySquare) - 1)
+            (this->char_coordinates[c1].x + 1 > sizeof(this->keySquare[0]) - 1)
                 ? this->keySquare[this->char_coordinates[c1].y][0]
                 : this->keySquare[this->char_coordinates[c1].y]
                                  [this->char_coordinates[c1].x + 1];
         output[i + 1] =
-            (this->char_coordinates[c2].y + 1 > sizeof(this->keySquare) - 1)
-                ? this->keySquare[0][this->char_coordinates[c2].x]
-                : this->keySquare[this->char_coordinates[c2].y + 1]
-                                 [this->char_coordinates[c2].x];
+            (this->char_coordinates[c2].x + 1 > sizeof(this->keySquare[0]) - 1)
+                ? this->keySquare[this->char_coordinates[c2].y][0]
+                : this->keySquare[this->char_coordinates[c2].y]
+                                 [this->char_coordinates[c2].x + 1];
       }
       // else if neither on same row or column
       else {
@@ -213,7 +224,48 @@ public:
     return output;
   }
 
-  std::string decrypt(std::string input, std::string key) { return input; }
+  std::string decrypt(std::string input, std::string key) {
+    std::string output = this->diagraphized_input;
+    for (int i = 0; i < this->diagraphized_input.size(); i = i + 2) {
+      char c1 = output[i];
+      char c2 = output[i + 1];
+      // if on same column
+      if (this->char_coordinates[c1].x == this->char_coordinates[c2].x) {
+        output[i] = (this->char_coordinates[c1].y - 1 < 0)
+                        ? this->keySquare[sizeof(this->keySquare[0]) - 1]
+                                         [this->char_coordinates[c1].x]
+                        : this->keySquare[this->char_coordinates[c1].y - 1]
+                                         [this->char_coordinates[c1].x];
+        output[i + 1] = (this->char_coordinates[c2].y - 1 < 0)
+                            ? this->keySquare[sizeof(this->keySquare[0]) - 1]
+                                             [this->char_coordinates[c2].x]
+                            : this->keySquare[this->char_coordinates[c2].y - 1]
+                                             [this->char_coordinates[c2].x];
+      }
+      // if on same row
+      else if (this->char_coordinates[c1].y == this->char_coordinates[c2].y) {
+        output[i] = (this->char_coordinates[c1].x - 1 < 0)
+                        ? this->keySquare[this->char_coordinates[c1].y]
+                                         [sizeof(this->keySquare[0]) - 1]
+                        : this->keySquare[this->char_coordinates[c1].y]
+                                         [this->char_coordinates[c1].x - 1];
+        output[i + 1] = (this->char_coordinates[c2].x - 1 < 0)
+                            ? this->keySquare[this->char_coordinates[c2].y]
+                                             [sizeof(this->keySquare[0]) - 1]
+                            : this->keySquare[this->char_coordinates[c2].y]
+                                             [this->char_coordinates[c2].x - 1];
+      }
+      // else if neither on same row or column
+      else {
+        output[i] = this->keySquare[this->char_coordinates[c1].y]
+                                   [this->char_coordinates[c2].x];
+        output[i + 1] = this->keySquare[this->char_coordinates[c2].y]
+                                       [this->char_coordinates[c1].x];
+      }
+    }
+
+    return output;
+  }
 };
 
 int getCipher() {
@@ -235,20 +287,21 @@ std::string getKey(int cipher, std::string input) {
     return encrypt_decrypt(input, key, new Caesar());
     break;
   case 2:
-    std::cout << "Enter Vigenere cipher key(string)" << std::endl;
+    std::cout << "Enter Vigenere cipher key(string[a-z,A-Z])" << std::endl;
     std::cin >> keyStr;
     return encrypt_decrypt(input, keyStr, new Vigenere());
     break;
   case 3:
-    std::cout << "Enter Playfair cipher key(string)" << std::endl;
+    std::cout << "Enter Playfair cipher key(string[a-z])" << std::endl;
     std::cin >> keyStr;
+    // convert input to lowercase
+    std::transform(input.begin(), input.end(), input.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
     return encrypt_decrypt(input, keyStr, new Playfair(keyStr, input, 'x'));
     break;
   default:
-    std::cout << "Invalid input" << std::endl;
-    break;
+    throw "Invalid input";
   }
-  return "ERROR";
 }
 
 std::string getText() {
@@ -256,14 +309,20 @@ std::string getText() {
   fin.open("process.txt");
   std::string input;
   fin >> input;
+  fin.close();
   return input;
 }
 
 int main(int argc, char *argv[]) {
-  int cipher = getCipher();
-  std::string input = getText();
-  std::string answer = getKey(cipher, input);
-  std::cout << answer << std::endl;
+  try {
+    int cipher = getCipher();
+    std::string input = getText();
+    std::string answer = getKey(cipher, input);
+    std::cout << answer << std::endl;
+
+  } catch (const char *err) {
+    std::cout << err << std::endl;
+  }
 
   return 0;
 }
