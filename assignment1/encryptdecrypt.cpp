@@ -307,6 +307,9 @@ std::string getKey(int cipher, std::string input) {
 std::string getText() {
   std::ifstream fin;
   fin.open("process.txt");
+  if (fin.fail()) {
+    throw "Cannot open file 'process.txt'";
+  }
   std::string input;
   fin >> input;
   fin.close();

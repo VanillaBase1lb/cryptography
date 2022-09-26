@@ -2,7 +2,7 @@
 #include <chrono>
 
 int main(int argc, char *argv[]) {
-  std::string cipher_text = readCipherFromFile();
+  std::string cipher_text = readCipherFromFile('v');
   // start timer
   auto start = std::chrono::high_resolution_clock::now();
   std::string key = crackVigenere(cipher_text).first;

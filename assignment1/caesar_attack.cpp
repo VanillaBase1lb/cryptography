@@ -2,7 +2,7 @@
 #include <chrono>
 
 int main(int argc, char *argv[]) {
-  std::string cipher_text = readCipherFromFile();
+  std::string cipher_text = readCipherFromFile('c');
   // start timer
   auto start = std::chrono::high_resolution_clock::now();
   int key = crackCaesar(cipher_text).first;
